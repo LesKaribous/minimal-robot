@@ -3,8 +3,8 @@
 #include <Adafruit_NeoPixel.h>
 #include <TeensyStep.h>
 #include <Servo.h>
-#include "SPI.h"
-#include "ILI9341_t3n.h"
+#include <SPI.h>
+#include <ILI9341_t3n.h>
 
 #define NUMPIXELS 4
 
@@ -22,6 +22,8 @@ void check_stepper_rotate();
 void check_servo();
 void tft_test();
 void check_ihm_tft();
+void setTurbineSpeed(int speed);
+void checkTurbine();
 
 Stepper stepper_A(step_1, dir_1);
 Stepper stepper_B(step_2, dir_2);
@@ -66,6 +68,9 @@ int close07 = 100;
 int close08 = 80;
 int close09 = 80;
 
+Servo ServoTrap;
+int turbineSpeed = 0;
+
 Adafruit_NeoPixel pixels(NUMPIXELS, neopixel, NEO_GRB + NEO_KHZ800);
 #define DELAYVAL 0
 
@@ -85,8 +90,9 @@ void setup() {
 
 void loop() {
   Serial.println("Poke");
+  checkTurbine();
   //tft_test();
-  check_ihm_tft();
+  //check_ihm_tft();
   //check_ihm();
   //check_servo();
   //check_neopixel();
@@ -113,6 +119,8 @@ void init_pinout(){
   pinMode(step_3,OUTPUT);
 
   pinMode(stepper_en,OUTPUT);
+
+  pinMode(pinTurbine,OUTPUT);
 }
 
 void init_stepper(){
@@ -139,6 +147,8 @@ void init_servo(){
   Servo07.attach(pinServo07);
   Servo08.attach(pinServo08);
   Servo09.attach(pinServo09);
+
+  ServoTrap.attach(pinServoTrap);
 
   Servo01.write(open01);
   Servo02.write(open02);
@@ -179,7 +189,7 @@ void check_ihm(){
 }
 
 void check_ihm_tft(){
-  //tft.fillScreen(ILI9341_BLACK);
+  tft.fillScreen(ILI9341_BLACK);
   tft.setTextColor(ILI9341_YELLOW);
 
   tft.fillRect(150,0,20,20, ILI9341_BLACK);
@@ -336,4 +346,38 @@ void init_tft(){
 
 void tft_test(){
   tft.println(F("Hello World"));
+}
+
+void setTurbineSpeed(int speed){
+  speed = constrain(speed,0,255);
+  if(speed>turbineSpeed)
+  {
+    for(int i=turbineSpeed; i<=speed; i++)
+    {
+      analogWrite(pinTurbine,i);
+      delay(5);
+    }
+  }
+  else if (speed<turbineSpeed)
+  {
+    for(int i=turbineSpeed; i>=speed; i--)
+    {
+      analogWrite(pinTurbine,i);
+      delay(5);
+    }
+  }
+  turbineSpeed = speed;
+}
+
+void checkTurbine(){
+  ServoTrap.attach(pinServoTrap);
+  ServoTrap.write(50);
+  setTurbineSpeed(250);
+  delay(15000);
+  setTurbineSpeed(0);
+  delay(2000);
+  ServoTrap.write(140);
+  delay(3000);
+  ServoTrap.write(50);
+  ServoTrap.detach();
 }
