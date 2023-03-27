@@ -24,6 +24,8 @@ void tft_test();
 void check_ihm_tft();
 void setTurbineSpeed(int speed);
 void checkTurbine();
+void testLidar();
+void checkLidar();
 
 Stepper stepper_A(step_1, dir_1);
 Stepper stepper_B(step_2, dir_2);
@@ -71,14 +73,18 @@ int close09 = 80;
 Servo ServoTrap;
 int turbineSpeed = 0;
 
+int objAngle = 0, objDistance = 0;
+bool newLidarData = false ;
+
 Adafruit_NeoPixel pixels(NUMPIXELS, neopixel, NEO_GRB + NEO_KHZ800);
 #define DELAYVAL 0
 
 ILI9341_t3n tft = ILI9341_t3n(TFT_CS, TFT_DC, TFT_RST, TFT_MOSI, TFT_SCK, TFT_MISO);
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
   Serial.println("Hello");
+  Serial1.begin(115200); // Lidar
   init_pinout();
   init_stepper();
   init_tft();
@@ -86,11 +92,11 @@ void setup() {
   init_servo();
   delay(500);
   free_servo();
+  testLidar();
 }
 
 void loop() {
-  Serial.println("Poke");
-  checkTurbine();
+  //checkTurbine();
   //tft_test();
   //check_ihm_tft();
   //check_ihm();
@@ -99,6 +105,7 @@ void loop() {
   //rainbow_neopixel();
   //check_stepper_rotate();
   //check_stepper_move();
+  checkLidar();
   delay(200);
 }
 
@@ -380,4 +387,48 @@ void checkTurbine(){
   delay(3000);
   ServoTrap.write(50);
   ServoTrap.detach();
+}
+
+void testLidar(){
+  // Envoi une demande de detection
+  Serial1.println("G90,400;");
+}
+
+void checkLidar(){
+  if(newLidarData){
+    Serial.print("M");
+    Serial.print(objAngle);
+    Serial.print(",");
+    Serial.println(objDistance);
+    newLidarData = false;
+  }
+}
+
+void serialEvent1() {
+  // Serial.println("Input from lidar...");
+  // Lit les données jusqu'à la fin de la trame
+  String inputString = Serial1.readStringUntil('\n');
+  Serial.println(inputString);
+  if (inputString.charAt(0) == 'M')
+  {
+    // Extraction des données à partir de la trame
+    int commaIndex = inputString.indexOf(',');
+    int xIndex = 1;
+    int yIndex = commaIndex + 1;
+    if (commaIndex != -1 && inputString.charAt(inputString.length() - 2) == ';') // -2 pour le serial hardware
+    {
+      // Conversion des données en entiers
+      String xString = inputString.substring(xIndex, commaIndex);
+      String yString = inputString.substring(yIndex, inputString.length() - 1);
+      objAngle = xString.toInt();
+      objDistance   = yString.toInt();
+      newLidarData = true; // Active le flag newData lorsque des données sont disponibles
+    } else {
+      Serial.println("Invalid data format on serial 1 (; missing)");
+    }
+  } 
+  else 
+  {
+    Serial.println("Invalid data format on serial 1 (M missing)");
+  }
 }
