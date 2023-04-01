@@ -1,5 +1,6 @@
 #include <Arduino.h>
-#include <pinout.h>
+#include <Pin.h>
+#include <UI/UI.h>
 #include <Adafruit_NeoPixel.h>
 #include <TeensyStep.h>
 #include <Servo.h>
@@ -11,21 +12,19 @@
 void init_pinout();
 void init_servo();
 void free_servo();
-void init_tft();
 void init_stepper();
-void check_ihm();
 void check_neopixel();
 void color_neopixel(char R,char G, char B);
 void rainbow_neopixel();
 void check_stepper_move();
 void check_stepper_rotate();
 void check_servo();
-void tft_test();
-void check_ihm_tft();
 void setTurbineSpeed(int speed);
 void checkTurbine();
-void testLidar();
-void checkLidar();
+bool initComLidar();
+bool checkLidar();
+void updateScore(int uScore);
+void testScore();
 
 Stepper stepper_A(step_1, dir_1);
 Stepper stepper_B(step_2, dir_2);
@@ -75,11 +74,12 @@ int turbineSpeed = 0;
 
 int objAngle = 0, objDistance = 0;
 bool newLidarData = false ;
+bool pong = false;
+
+int lidarTimeOut = millis();
 
 Adafruit_NeoPixel pixels(NUMPIXELS, neopixel, NEO_GRB + NEO_KHZ800);
 #define DELAYVAL 0
-
-ILI9341_t3n tft = ILI9341_t3n(TFT_CS, TFT_DC, TFT_RST, TFT_MOSI, TFT_SCK, TFT_MISO);
 
 void setup() {
   Serial.begin(115200);
@@ -87,33 +87,37 @@ void setup() {
   Serial1.begin(115200); // Lidar
   init_pinout();
   init_stepper();
-  init_tft();
   pixels.begin();
+  init_tft();
   init_servo();
   delay(500);
   free_servo();
-  testLidar();
+  while(!initComLidar());
+  Serial1.println("G90,400;");
 }
 
 void loop() {
+  drawBackScreenStart();
+  while(1)
+  {
+    checkLidar();
+    updateAllStartVar();
+  }
   //checkTurbine();
-  //tft_test();
-  //check_ihm_tft();
-  //check_ihm();
   //check_servo();
   //check_neopixel();
   //rainbow_neopixel();
   //check_stepper_rotate();
   //check_stepper_move();
-  checkLidar();
-  delay(200);
+  //
+  //delay(200);
 }
 
 void init_pinout(){
   pinMode(ihm_init,INPUT_PULLUP);
   pinMode(ihm_tirette,INPUT_PULLUP);
   pinMode(ihm_couleur,INPUT_PULLUP);
-  pinMode(ihm_detection,INPUT_PULLUP);
+  pinMode(ihm_strategy,INPUT_PULLUP);
 
   pinMode(neopixel,OUTPUT);
 
@@ -182,37 +186,6 @@ void free_servo(){
   Servo07.detach();
   Servo08.detach();
   Servo09.detach();
-}
-
-void check_ihm(){
-  Serial.print("Init : ");
-  Serial.println(digitalRead(ihm_init));
-  Serial.print("Tirette : ");
-  Serial.println(digitalRead(ihm_tirette));
-  Serial.print("Couleur : ");
-  Serial.println(digitalRead(ihm_couleur));
-  Serial.print("Detection : ");
-  Serial.println(digitalRead(ihm_detection));
-}
-
-void check_ihm_tft(){
-  tft.fillScreen(ILI9341_BLACK);
-  tft.setTextColor(ILI9341_YELLOW);
-
-  tft.fillRect(150,0,20,20, ILI9341_BLACK);
-  tft.fillRect(150,20,20,20, ILI9341_BLACK);
-  tft.fillRect(150,40,20,20, ILI9341_BLACK);
-  tft.fillRect(150,60,20,20, ILI9341_BLACK);
-
-  tft.drawString("Init : ",0,0);      tft.drawNumber(digitalRead(ihm_init),150,0);
-  tft.drawString("Tirette : ",0,20);   tft.drawNumber(digitalRead(ihm_tirette),150,20);
-  tft.drawString("Strategie : ",0,40); tft.drawNumber(digitalRead(ihm_detection),150,40);
-
-  bool team_color = digitalRead(ihm_couleur);
-  if (team_color) tft.setTextColor(ILI9341_BLUE);
-  else tft.setTextColor(ILI9341_GREEN);
-  tft.drawString("Couleur : ",0,60);   tft.drawNumber(team_color,150,60);
-  
 }
 
 void check_servo(){
@@ -344,17 +317,6 @@ void check_stepper_rotate(){
   digitalWrite(stepper_en,HIGH);
 }
 
-void init_tft(){
-  tft.begin();
-  tft.fillScreen(ILI9341_BLACK);
-  tft.setTextColor(ILI9341_YELLOW);
-  tft.setTextSize(2);
-}
-
-void tft_test(){
-  tft.println(F("Hello World"));
-}
-
 void setTurbineSpeed(int speed){
   speed = constrain(speed,0,255);
   if(speed>turbineSpeed)
@@ -389,18 +351,40 @@ void checkTurbine(){
   ServoTrap.detach();
 }
 
-void testLidar(){
+bool initComLidar(){
   // Envoi une demande de detection
-  Serial1.println("G90,400;");
+  if(!pong)
+  {
+    Serial1.println("Ping\n");
+    setLidarState(LIDAR_ERROR);
+    return false;
+  }
+  else 
+  {
+    setLidarState(LIDAR_CONNECTED);
+    return true ;
+  }
 }
 
-void checkLidar(){
-  if(newLidarData){
+bool checkLidar()
+{
+  if(newLidarData)
+  {
     Serial.print("M");
     Serial.print(objAngle);
     Serial.print(",");
     Serial.println(objDistance);
     newLidarData = false;
+    lidarTimeOut=millis();
+    return true;
+  }
+  else 
+  {
+    if(millis() - lidarTimeOut > 1000)
+    {
+      Serial1.println("Ping\n");
+    }
+    return false;
   }
 }
 
@@ -409,6 +393,9 @@ void serialEvent1() {
   // Lit les données jusqu'à la fin de la trame
   String inputString = Serial1.readStringUntil('\n');
   Serial.println(inputString);
+
+  if (inputString == "Pong") pong = true;
+
   if (inputString.charAt(0) == 'M')
   {
     // Extraction des données à partir de la trame
