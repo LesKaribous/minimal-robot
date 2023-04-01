@@ -93,24 +93,39 @@ void setup() {
   delay(500);
   free_servo();
   while(!initComLidar());
-  Serial1.println("G90,400;");
+  drawBackScreenStart();
 }
 
 void loop() {
-  drawBackScreenStart();
-  while(1)
+  
+  while(getTiretteState()!= TIRETTE_GO)
   {
-    checkLidar();
     updateAllStartVar();
+    if(initHasPressed())
+    {
+      updateAllStartVar();
+      // Initialize
+      check_stepper_move();
+      // end Initialize
+      delay(2000);
+      setInitState(DONE_INIT);
+    }
   }
-  //checkTurbine();
-  //check_servo();
-  //check_neopixel();
-  //rainbow_neopixel();
-  //check_stepper_rotate();
-  //check_stepper_move();
-  //
-  //delay(200);
+  drawBackScreenMatch();
+  updateAllMatchVar();
+
+    // Match
+    //init_servo();
+    //check_servo();
+    //free_servo();
+    //checkTurbine();
+    //check_neopixel();
+    //rainbow_neopixel();
+    //check_stepper_move();
+    //check_stepper_rotate();
+    // End Match
+    if(initHasPressed()) while(!checkRestartRequest());
+    delay(1000);
 }
 
 void init_pinout(){
