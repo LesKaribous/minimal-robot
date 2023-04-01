@@ -1,10 +1,14 @@
-// IHM Pinout
+#ifndef PIN_H
+#define PIN_H
+
 const int ihm_init = 25,
     ihm_tirette = 26,
     ihm_couleur = 27,
-    ihm_detection = 28;
+    ihm_strategy = 28;
 
 const int neopixel = 57;
+
+const int pinRobot = 2;
 
 // TFT pinout
 const int TFT_CS = 43,
@@ -57,7 +61,4 @@ const int pinButtonGrabber04 = 34; //A4 - 3
 
 
 
-
-
-
-
+#endif // PIN_H
