@@ -54,10 +54,10 @@ const int pinServoTrap      = 55; //D2 - 6
 const int pinServoExtended  = 53; //D3 - 9
 
 //  IHM BallGrabber
-const int pinButtonGrabber01 = 15; //A1 - 8
-const int pinButtonGrabber02 = 14; //A2 - 7
-const int pinButtonGrabber03 = 33; //A3 - 4
-const int pinButtonGrabber04 = 34; //A4 - 3
+const int pinButtonGrabber01 = 34; //A1 - 8 - UP
+const int pinButtonGrabber02 = 15; //A2 - 7 - DOWN
+const int pinButtonGrabber03 = 14; //A3 - 4 - I
+const int pinButtonGrabber04 = 33; //A4 - 3 - II
 
 
 

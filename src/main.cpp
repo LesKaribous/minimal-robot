@@ -19,6 +19,7 @@ void rainbow_neopixel();
 void check_stepper_move();
 void check_stepper_rotate();
 void check_servo();
+void ihmTurbine();
 void setTurbineSpeed(int speed);
 void checkTurbine();
 bool initComLidar();
@@ -123,6 +124,7 @@ void loop() {
     //rainbow_neopixel();
     //check_stepper_move();
     //check_stepper_rotate();
+    //while(1) ihmTurbine();
     // End Match
     if(initHasPressed()) while(!checkRestartRequest());
     delay(1000);
@@ -145,8 +147,14 @@ void init_pinout(){
   pinMode(step_3,OUTPUT);
 
   pinMode(stepper_en,OUTPUT);
+  digitalWrite(stepper_en,HIGH);
 
   pinMode(pinTurbine,OUTPUT);
+
+  pinMode(pinButtonGrabber01,INPUT_PULLUP);
+  pinMode(pinButtonGrabber02,INPUT_PULLUP);
+  pinMode(pinButtonGrabber03,INPUT_PULLUP);
+  pinMode(pinButtonGrabber04,INPUT_PULLUP);
 }
 
 void init_stepper(){
@@ -353,11 +361,44 @@ void setTurbineSpeed(int speed){
   turbineSpeed = speed;
 }
 
+void ihmTurbine(){
+
+  int upState, downState, IState, IIState ;
+
+  upState   = !digitalRead(pinButtonGrabber01);
+  downState = !digitalRead(pinButtonGrabber02);
+  IState    = !digitalRead(pinButtonGrabber03);
+  IIState   = !digitalRead(pinButtonGrabber04);
+
+  /*
+  Serial.print("Up :");
+  Serial.print(upState);
+  Serial.print(" ,Down :");
+  Serial.print(downState);
+  Serial.print(" ,I :");
+  Serial.print(IState);
+  Serial.print(" ,II :");
+  Serial.println(IIState);
+  */
+
+  if (upState) setTurbineSpeed(250);
+  if (downState) setTurbineSpeed(0);
+
+  if (IState) {
+    ServoTrap.write(50);
+  }
+  else if (IIState) {
+    ServoTrap.write(140);
+  }
+  else ServoTrap.write(50);
+
+}
+
 void checkTurbine(){
   ServoTrap.attach(pinServoTrap);
   ServoTrap.write(50);
   setTurbineSpeed(250);
-  delay(15000);
+  delay(5000);
   setTurbineSpeed(0);
   delay(2000);
   ServoTrap.write(140);
