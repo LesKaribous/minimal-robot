@@ -93,7 +93,7 @@ void setup() {
   init_servo();
   delay(500);
   free_servo();
-  while(!initComLidar());
+  //while(!initComLidar());
   drawBackScreenStart();
 }
 
@@ -122,7 +122,7 @@ void loop() {
     //checkTurbine();
     //check_neopixel();
     //rainbow_neopixel();
-    //check_stepper_move();
+    check_stepper_move();
     //check_stepper_rotate();
     //while(1) ihmTurbine();
     // End Match
@@ -303,8 +303,9 @@ void check_stepper_move(){
 
   StepController.moveAsync(stepper_A, stepper_B, stepper_C);
   while(StepController.isRunning()){
-    Serial.print("|");
-    delay(500);
+    //Serial.print("|");
+    //delay(500);
+    delay(1);
   }
 
   stepper_A.setTargetAbs(500);
@@ -314,8 +315,9 @@ void check_stepper_move(){
   StepController.moveAsync(stepper_A, stepper_B, stepper_C);
 
   while(StepController.isRunning()){
-    Serial.print("|");
-    delay(500);
+    //Serial.print("|");
+    //delay(500);
+    delay(1);
   }
 
   stepper_A.setTargetAbs(-500);
@@ -325,8 +327,9 @@ void check_stepper_move(){
   StepController.moveAsync(stepper_A, stepper_B, stepper_C);
 
   while(StepController.isRunning()){
-    Serial.print("|");
-    delay(500);
+    //Serial.print("|");
+    //delay(500);
+    delay(1);
   }
 
   digitalWrite(stepper_en,HIGH);
