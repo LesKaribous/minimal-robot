@@ -97,7 +97,7 @@ bool lidarHasChanged(){
 }
 
 bool tiretteHasChanged(){
-  bool pinTiretteState = digitalRead(ihm_tirette);
+  bool pinTiretteState = !digitalRead(ihm_tirette);
   switch (TIRETTE_STATE)
   {
   case TIRETTE_UNARMED:
