@@ -26,10 +26,10 @@ const int stepper_en = 24;
 
 const int dir_1 = 4, 
     dir_2 = 25, 
-    dir_3 = 26 ;
+    dir_3 = 5 ;
 const int step_1 = 6, 
     step_2 = 27, 
-    step_3 = 5 ;
+    step_3 = 26 ;
 
 // Actuator Pinout
 const int pinServo01 = 21;
