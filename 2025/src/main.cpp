@@ -7,6 +7,8 @@
 #include <Servo.h>
 #include <SPI.h>
 #include <ILI9341_t3.h>
+#include <Wire.h>
+#include <Adafruit_PWMServoDriver.h>
 
 #define NUMPIXELS 2
 
@@ -25,6 +27,8 @@ void check_stepper_rotate();
 void check_servo();
 void updateScore(int uScore);
 void testScore();
+void initPump();
+void testPump();
 
 Stepper stepper_A(step_1, dir_1);
 Stepper stepper_B(step_2, dir_2);
@@ -45,32 +49,33 @@ Servo Servo07;
 Servo Servo08;
 Servo Servo09;
 
-int open01 = 60;
-int open02 = 100;
-int open03 = 100;
+int open01 = 90;
+int open02 = 90;
+int open03 = 90;
 
-int open04 = 60;
-int open05 = 100;
-int open06 = 100;
+int open04 = 90;
+int open05 = 90;
+int open06 = 90;
 
-int open07 = 60;
-int open08 = 100;
-int open09 = 100;
+int open07 = 90;
+int open08 = 90;
+int open09 = 90;
 
-int close01 = 100;
-int close02 = 80;
-int close03 = 80;
+int close01 = 0;
+int close02 = 0;
+int close03 = 0;
 
-int close04 = 100;
-int close05 = 80;
-int close06 = 80;
+int close04 = 0;
+int close05 = 0;
+int close06 = 0;
 
-int close07 = 100;
-int close08 = 80;
-int close09 = 80;
+int close07 = 0;
+int close08 = 0;
+int close09 = 0;
 
 Adafruit_NeoPixel pixels(NUMPIXELS, neopixel, NEO_GRB + NEO_KHZ800);
 #define DELAYVAL 0
+Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
 
 void setup() {
   Serial.begin(115200);
@@ -81,7 +86,11 @@ void setup() {
   pixels.begin();
   init_tft();
   init_servo();
+  initPump();
   delay(500);
+  //!!!!!!!!
+  while(1) testPump(); //!!!!!!!!
+  check_servo();
   free_servo();
   drawBackScreenStart();
   playTone(NOTE_B0,400);
@@ -140,6 +149,9 @@ void init_pinout(){
 
   pinMode(stepper_en,OUTPUT);
   digitalWrite(stepper_en,HIGH);
+
+  pinMode(pinEnaTraco,OUTPUT);
+  digitalWrite(pinEnaTraco,HIGH);
 }
 
 void init_stepper(){
@@ -363,4 +375,46 @@ void check_stepper_rotate(){
   delay(2000);
   RotController.stop();
   digitalWrite(stepper_en,HIGH);
+}
+
+
+void initPump(){
+  pwm.begin();
+  /*
+   * In theory the internal oscillator (clock) is 25MHz but it really isn't
+   * that precise. You can 'calibrate' this by tweaking this number until
+   * you get the PWM update frequency you're expecting!
+   * The int.osc. for the PCA9685 chip is a range between about 23-27MHz and
+   * is used for calculating things like writeMicroseconds()
+   * Analog servos run at ~50 Hz updates, It is importaint to use an
+   * oscilloscope in setting the int.osc frequency for the I2C PCA9685 chip.
+   * 1) Attach the oscilloscope to one of the PWM signal pins and ground on
+   *    the I2C PCA9685 chip you are setting the value for.
+   * 2) Adjust setOscillatorFrequency() until the PWM update frequency is the
+   *    expected value (50Hz for most ESCs)
+   * Setting the value here is specific to each individual I2C PCA9685 chip and
+   * affects the calculations for the PWM update frequency. 
+   * Failure to correctly set the int.osc value will cause unexpected PWM results
+   */
+  pwm.setOscillatorFrequency(50000000);
+  pwm.setPWMFreq(1600);  // This is the maximum PWM frequency
+
+  // if you want to really speed stuff up, you can go into 'fast 400khz I2C' mode
+  // some i2c devices dont like this so much so if you're sharing the bus, watch
+  // out for this!
+  //Wire.setClock(400000);
+
+}
+
+void testPump(){
+
+  pwm.setPWM(0, 4096, 0 ); 
+  pwm.setPWM(1, 0 , 4096 ); 
+  delay(2000);
+  pwm.setPWM(0, 0, 4096 ); 
+  pwm.setPWM(1, 4096 , 0 );
+  delay(500);
+  pwm.setPWM(1, 0 , 4096 ); 
+  delay(2000);
+
 }
