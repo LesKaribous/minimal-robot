@@ -10,6 +10,9 @@
 
 #define NUMPIXELS 2
 
+#define ON true
+#define OFF false
+
 void init_pinout();
 void init_servo();
 void free_servo();
@@ -18,6 +21,9 @@ void initPump();
 void testPump();
 void moveServo(Servo &servo, int angleA, int angleB, int speed);
 void sequence_actuator();
+void setOutput(uint8_t pin, bool state);
+void startPump(uint8_t pumpPin, uint8_t evPin);
+void stopPump(uint8_t pumpPin, uint8_t evPin, uint16_t evPulseDuration = 500);
 
 Servo CA_LeftGripper;
 Servo CA_RightGripper;
@@ -58,7 +64,6 @@ int CA_PlankGripperRaise = 130;
 int AB_PlankGripperGrab = 90;
 int AB_PlankGripperRaise = 130;
 
-#define DELAYVAL 0
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
 
 void setup() {
@@ -74,6 +79,7 @@ void setup() {
 }
 
 void loop() {
+  testPump();
   sequence_actuator();
 }
 
@@ -176,21 +182,40 @@ void initPump(){
 
 }
 
-void testPump(){
-
-  pwm.setPWM(0, 4096, 0 ); 
-  pwm.setPWM(1, 0 , 4096 ); 
-  delay(2000);
-  pwm.setPWM(0, 0, 4096 ); 
-  pwm.setPWM(1, 4096 , 0 );
-  delay(500);
-  pwm.setPWM(1, 0 , 4096 ); 
-  delay(2000);
-
+void setOutput(uint8_t pin, bool state) {
+  if (state) {
+    pwm.setPWM(pin, 4096, 0);  // ON
+  } else {
+    pwm.setPWM(pin, 0, 4096);  // OFF
+  }
 }
 
+void startPump(uint8_t pumpPin, uint8_t evPin) {
+  setOutput(evPin, false);  // Fermer l'électrovanne
+  setOutput(pumpPin, true); // Démarrer la pompe
+}
+
+void stopPump(uint8_t pumpPin, uint8_t evPin, uint16_t evPulseDuration = 500) {
+  setOutput(pumpPin, false); // Stopper la pompe
+  setOutput(evPin, true);    // Ouvrir l’EV
+  delay(evPulseDuration);    // Maintenir l’EV ouverte
+  setOutput(evPin, false);   // Fermer l’EV
+}
+
+void testPump() {
+  startPump(Pump_AB, Ev_AB);
+  delay(2000);               // Pompage
+  stopPump(Pump_AB, Ev_AB);  // Relâche pression
+
+  delay(2000);
+
+  startPump(Pump_CA, Ev_CA);
+  delay(2000);
+  stopPump(Pump_CA, Ev_CA);
+}
+
+
 void sequence_actuator(){
-  
   /*
   Servo01 - 
   Servo02 - 

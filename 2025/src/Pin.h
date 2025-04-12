@@ -46,6 +46,12 @@ const int pinServo07 = 15; // Elevator CA
 const int pinServo08 = 14; // Elevator AB
 const int pinServo09 = 17; // Elevator BC
 
+const int Pump_AB = 0;
+const int Ev_AB = 1;
+
+const int Pump_CA = 2;
+const int Ev_CA = 3;
+
 //  EnableRegulator 
 const int pinEnaTraco   = 28;
 
