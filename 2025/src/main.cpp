@@ -1,9 +1,7 @@
 #include <Arduino.h>
 #include <Pin.h>
 #include <UI/UI.h>
-#include <UI/notes.h>
 #include <Adafruit_NeoPixel.h>
-#include <TeensyStep.h>
 #include <Servo.h>
 #include <SPI.h>
 #include <ILI9341_t3.h>
@@ -14,121 +12,69 @@
 
 void init_pinout();
 void init_servo();
-void playTone(int frequency, int duration);
-void playMelody(int *notes, int *durations, int length, int tempo);
-void playStartupMelody();
 void free_servo();
-void init_stepper();
-void check_neopixel();
-void color_neopixel(char R,char G, char B);
-void rainbow_neopixel();
-void check_stepper_move();
-void check_stepper_rotate();
 void check_servo();
-void updateScore(int uScore);
-void testScore();
 void initPump();
 void testPump();
+void moveServo(Servo &servo, int angleA, int angleB, int speed);
+void sequence_actuator();
 
-Stepper stepper_A(step_1, dir_1);
-Stepper stepper_B(step_2, dir_2);
-Stepper stepper_C(step_3, dir_3);
+Servo CA_LeftGripper;
+Servo CA_RightGripper;
+Servo CA_PlankGripper;
 
-StepControl StepController;
-RotateControl RotController;
+Servo AB_LeftGripper;
+Servo AB_RightGripper;
+Servo AB_PlankGripper;
 
-Servo Servo01;
-Servo Servo02;
-Servo Servo03;
+Servo CA_Elevator;
+Servo AB_Elevator;
+Servo BC_Elevator;
 
-Servo Servo04;
-Servo Servo05;
-Servo Servo06;
+int CA_ElevatorHigh = 20;
+int CA_ElevatorLow  = 120;
 
-Servo Servo07;
-Servo Servo08;
-Servo Servo09;
+int AB_ElevatorHigh = 20;
+int AB_ElevatorLow  = 120;
 
-int open01 = 90;
-int open02 = 90;
-int open03 = 90;
+int BC_ElevatorHigh = 36;
+int BC_ElevatorLow  = 17;
 
-int open04 = 90;
-int open05 = 90;
-int open06 = 90;
+int CA_LeftGripperOpen = 0;
+int CA_LeftGripperGrab = 180;
 
-int open07 = 90;
-int open08 = 90;
-int open09 = 90;
+int CA_RightGripperOpen = 180;
+int CA_RightGripperGrab = 0;
 
-int close01 = 0;
-int close02 = 0;
-int close03 = 0;
+int AB_LeftGripperOpen = 0;
+int AB_LeftGripperGrab = 170;
 
-int close04 = 0;
-int close05 = 0;
-int close06 = 0;
+int AB_RightGripperOpen = 180;
+int AB_RightGripperGrab = 30;
 
-int close07 = 0;
-int close08 = 0;
-int close09 = 0;
+int CA_PlankGripperGrab = 90;
+int CA_PlankGripperRaise = 130;
 
-Adafruit_NeoPixel pixels(NUMPIXELS, neopixel, NEO_GRB + NEO_KHZ800);
+int AB_PlankGripperGrab = 90;
+int AB_PlankGripperRaise = 130;
+
 #define DELAYVAL 0
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
 
 void setup() {
   Serial.begin(115200);
   Serial.println("Hello");
-  Serial1.begin(115200); // Lidar
   init_pinout();
-  init_stepper();
-  pixels.begin();
-  init_tft();
   init_servo();
   initPump();
   delay(500);
-  //!!!!!!!!
-  while(1) testPump(); //!!!!!!!!
-  check_servo();
-  free_servo();
-  drawBackScreenStart();
-  playTone(NOTE_B0,400);
-  playTone(NOTE_C1,400);
+  init_tft();
+  //check_servo();
+  //free_servo();
 }
 
 void loop() {
-  
-  while(getTiretteState()!= TIRETTE_GO)
-  {
-    updateAllStartVar();
-    if(initHasPressed())
-    {
-      updateAllStartVar();
-      check_neopixel();
-      rainbow_neopixel();
-      // Initialize
-      check_stepper_move();
-      // end Initialize
-      delay(2000);
-      setInitState(DONE_INIT);
-    }
-  }
-  drawBackScreenMatch();
-  updateAllMatchVar();
-
-    // Match
-    //init_servo();
-    //check_servo();
-    //free_servo();
-    //check_neopixel();
-    //rainbow_neopixel();
-    check_stepper_move();
-    //check_stepper_rotate();
-    //while(1) ihmTurbine();
-    // End Match
-    if(initHasPressed()) while(!checkRestartRequest());
-    delay(1000);
+  sequence_actuator();
 }
 
 void init_pinout(){
@@ -137,246 +83,70 @@ void init_pinout(){
   pinMode(ihm_couleur,INPUT_PULLUP);
   pinMode(ihm_strategy,INPUT_PULLUP);
 
-  pinMode(neopixel,OUTPUT);
-
-  pinMode(dir_1,OUTPUT);
-  pinMode(dir_2,OUTPUT);
-  pinMode(dir_3,OUTPUT);
-
-  pinMode(step_1,OUTPUT);
-  pinMode(step_2,OUTPUT);
-  pinMode(step_3,OUTPUT);
-
-  pinMode(stepper_en,OUTPUT);
-  digitalWrite(stepper_en,HIGH);
+  pinMode(ihm_analog,INPUT);
 
   pinMode(pinEnaTraco,OUTPUT);
   digitalWrite(pinEnaTraco,HIGH);
 }
 
-void init_stepper(){
-  digitalWrite(stepper_en,HIGH);
-
-  stepper_A.setMaxSpeed(500);
-  stepper_B.setMaxSpeed(500);
-  stepper_C.setMaxSpeed(500);
-
-  stepper_A.setAcceleration(500);
-  stepper_B.setAcceleration(500);
-  stepper_C.setAcceleration(500);
-}
-
 void init_servo(){
-  Servo01.attach(pinServo01);
-  Servo02.attach(pinServo02);
-  Servo03.attach(pinServo03);
 
-  Servo04.attach(pinServo04);
-  Servo05.attach(pinServo05);
-  Servo06.attach(pinServo06);
+  CA_LeftGripper.attach(pinServo01);
+  CA_RightGripper.attach(pinServo02);
+  CA_PlankGripper.attach(pinServo03);
+  
+  AB_LeftGripper.attach(pinServo04);
+  AB_RightGripper.attach(pinServo05);
+  AB_PlankGripper.attach(pinServo06);
+  
+  CA_Elevator.attach(pinServo07);
+  AB_Elevator.attach(pinServo08);
+  BC_Elevator.attach(pinServo09);
 
-  Servo07.attach(pinServo07);
-  Servo08.attach(pinServo08);
-  Servo09.attach(pinServo09);
-
-  Servo01.write(open01);
-  Servo02.write(open02);
-  Servo03.write(open03);
-
-  Servo04.write(open04);
-  Servo05.write(open05);
-  Servo06.write(open06);
-
-  Servo07.write(open07);
-  Servo08.write(open08);
-  Servo09.write(open09);
+  CA_LeftGripper.write(CA_LeftGripperOpen);
+  CA_RightGripper.write(CA_RightGripperOpen);
+  CA_PlankGripper.write(CA_PlankGripperRaise);
+  
+  AB_LeftGripper.write(AB_LeftGripperOpen);
+  AB_RightGripper.write(AB_RightGripperOpen);
+  AB_PlankGripper.write(AB_PlankGripperRaise);
+  
+  CA_Elevator.write(CA_ElevatorLow);
+  AB_Elevator.write(AB_ElevatorLow);
+  BC_Elevator.write(BC_ElevatorLow);
 }
 
 void free_servo(){
-  Servo01.detach();
-  Servo02.detach();
-  Servo03.detach();
-
-  Servo04.detach();
-  Servo05.detach();
-  Servo06.detach();
-
-  Servo07.detach();
-  Servo08.detach();
-  Servo09.detach();
+  CA_LeftGripper.detach();
+  CA_RightGripper.detach();
+  CA_PlankGripper.detach();
+  
+  AB_LeftGripper.detach();
+  AB_RightGripper.detach();
+  AB_PlankGripper.detach();
+  
+  CA_Elevator.detach();
+  AB_Elevator.detach();
+  BC_Elevator.detach();
 }
 
 void check_servo(){
-  Servo01.write(open01);
-  Servo02.write(open02);
-  Servo03.write(open03);
-
-  Servo04.write(open04);
-  Servo05.write(open05);
-  Servo06.write(open06);
-
-  Servo07.write(open07);
-  Servo08.write(open08);
-  Servo09.write(open09);
-
-  delay(3000);
-  Servo01.write(close01);
-  Servo02.write(close02);
-  Servo03.write(close03);
-
-  Servo04.write(close04);
-  Servo05.write(close05);
-  Servo06.write(close06);
-
-  Servo07.write(close07);
-  Servo08.write(close08);
-  Servo09.write(close09);
-  delay(3000);
+  // To be done
 }
 
-void playTone(int frequency, int duration) {
-  if (frequency > 0) {
-    tone(buzzer, frequency, duration);
-  } else {
-    tone(buzzer, 0, duration);
-  }
+void moveServo(Servo &servo, int angleA, int angleB, int speed) {
+    if (angleA > angleB) {
+        for (int pos = angleA; pos >= angleB; pos--) {
+            servo.write(pos);
+            delay(speed);
+        }
+    } else {
+        for (int pos = angleA; pos <= angleB; pos++) {
+            servo.write(pos);
+            delay(speed);
+        }
+    }
 }
-
-// Fonction pour jouer une mélodie avec un tempo spécifique
-void playMelody(int *notes, int *durations, int length, int tempo) {
-  for (int i = 0; i < length; i++) {
-    int noteDuration = (tempo * 4) / durations[i]; // Calculer la durée réelle de la note
-    playTone(notes[i], noteDuration);       // Jouer chaque note
-    delay(noteDuration * 0.1);              // Petite pause entre les notes (10% de la durée)
-  }
-  tone(buzzer, 0);
-}
-
-void playStartupMelody() {
-   // Tempo spécifique pour cette mélodie (durée d'une noire en ms)
-  int tempo = 400;
-
-  // Notes du riff "We will rock you"
-  int melody[] = {
-    NOTE_G4, NOTE_F4, NOTE_REST, NOTE_E4, NOTE_D4, NOTE_REST, NOTE_E4, NOTE_E4, NOTE_REST
-  };
-
-  // Durées des notes : 2 = blanche, 4 = noire, 8 = croche
-  int noteDurations[] = {
-    4, 8, 8, 4, 8, 8, 8, 8, 4 // Dernière note prolongée
-  };
-
-  // Longueur de la mélodie
-  int length = sizeof(melody) / sizeof(melody[0]);
-
-  // Jouer la mélodie avec le tempo spécifique
-  playMelody(melody, noteDurations, length, tempo);
-}
-
-void check_neopixel(){
-  pixels.clear();
-  for(int i=0; i<NUMPIXELS; i++) {
-    pixels.setPixelColor(i, pixels.Color(255, 255, 255));
-    pixels.show();
-    delay(DELAYVAL);
-  }
-}
-
-void color_neopixel(char R,char G, char B){
-  pixels.clear();
-  for(int i=0; i<NUMPIXELS; i++) {
-    pixels.setPixelColor(i, pixels.Color(R, G, B));
-    pixels.show();
-  }
-}
-
-void rainbow_neopixel(){
-  pixels.clear();
-  int interDelay = 2;
-  for(int j = 0; j <= 255; j++){
-    color_neopixel(j,j,j);
-    delay(interDelay);
-  }
-  for(int j = 255; j >= 0; j--){
-    color_neopixel(j,j,j);
-    delay(interDelay);
-  }
-  for(int r = 0; r <= 255; r++){
-    color_neopixel(r,0,0);
-    delay(interDelay);
-  }
-  for(int r = 255; r >= 0; r--){
-    color_neopixel(r,0,0);
-    delay(interDelay);
-  }
-  for(int g = 0; g <= 255; g++){
-    color_neopixel(0,g,0);
-    delay(interDelay);
-  }
-  for(int g = 255; g >= 0; g--){
-    color_neopixel(0,g,0);
-    delay(interDelay);
-  }
-  for(int b = 0; b <= 255; b++){
-    color_neopixel(0,0,b);
-    delay(interDelay);
-  }
-  for(int b = 255; b >= 0; b--){
-    color_neopixel(0,0,b);
-    delay(interDelay);
-  }
-
-}
-
-void check_stepper_move(){
-  digitalWrite(stepper_en,LOW);
-
-  stepper_A.setTargetAbs(0);
-  stepper_B.setTargetAbs(0);
-  stepper_C.setTargetAbs(0);
-
-  StepController.moveAsync(stepper_A, stepper_B, stepper_C);
-  while(StepController.isRunning()){
-    //Serial.print("|");
-    //delay(500);
-    delay(1);
-  }
-
-  stepper_A.setTargetAbs(500);
-  stepper_B.setTargetAbs(500);
-  stepper_C.setTargetAbs(500);
-
-  StepController.moveAsync(stepper_A, stepper_B, stepper_C);
-
-  while(StepController.isRunning()){
-    //Serial.print("|");
-    //delay(500);
-    delay(1);
-  }
-
-  stepper_A.setTargetAbs(-500);
-  stepper_B.setTargetAbs(-500);
-  stepper_C.setTargetAbs(-500);
-
-  StepController.moveAsync(stepper_A, stepper_B, stepper_C);
-
-  while(StepController.isRunning()){
-    //Serial.print("|");
-    //delay(500);
-    delay(1);
-  }
-
-  digitalWrite(stepper_en,HIGH);
-}
-
-void check_stepper_rotate(){
-  digitalWrite(stepper_en,LOW);
-  RotController.rotateAsync(stepper_A, stepper_B, stepper_C);
-  delay(2000);
-  RotController.stop();
-  digitalWrite(stepper_en,HIGH);
-}
-
 
 void initPump(){
   pwm.begin();
@@ -417,4 +187,115 @@ void testPump(){
   pwm.setPWM(1, 0 , 4096 ); 
   delay(2000);
 
+}
+
+void sequence_actuator(){
+  
+  /*
+  Servo01 - 
+  Servo02 - 
+  Servo03 - 
+
+  Servo04 - Arm Suction Cup AB
+  Servo05 - Gripper AB Left
+  Servo06 - Gripper AB Right
+
+  Servo07 - Elevator CA
+  Servo08 - Elevator AB
+  Servo09 - Elevator BC
+  */
+
+  /*
+  // Test elevator + pump
+  pwm.setPWM(0, 4096, 0 ); 
+  pwm.setPWM(1, 0 , 4096 );
+  delay(500);
+  moveServo(Servo04, 45, 5, 5);
+  delay(2000);
+  moveServo(Servo04, 0, 45, 5); // Monter le bras
+  moveServo(Servo08, 0, 45, 20); // Monter l'elevator
+  delay(4000);
+  moveServo(Servo08, 45, 0, 20); // Descendre l'elevator
+  moveServo(Servo04, 45, 5, 5); // Descendre le bras
+  delay(2000);
+  pwm.setPWM(0, 0, 4096 ); 
+  pwm.setPWM(1, 4096 , 0 );
+  delay(500);
+  pwm.setPWM(1, 0 , 4096 );
+  delay(500);
+  moveServo(Servo04, 0, 45, 5);
+  */
+
+  // Test Elevator
+  /*
+  Servo04.write(40);
+  pwm.setPWM(0, 4096, 0 ); 
+  delay(2000);
+  moveServo(Servo08, 110, 10, 20);
+  delay(2000);
+  moveServo(Servo08, 10, 110, 25);
+  pwm.setPWM(0, 0, 4096 ); 
+  delay(2000);
+  */
+
+  /*
+  // Test gripper magnetic
+  Servo04.write(45);
+  moveServo(Servo08, 45, 0, 20); // Descendre l'elevator
+  delay(1000);
+  moveServo(Servo05, 0, 180, 2); // Take Left Can
+  moveServo(Servo06, 160, 10, 2); // Take Right Can
+  moveServo(Servo08, 0, 45, 20); // Monter l'elevator
+  delay(2000);
+  moveServo(Servo08, 45, 0, 20); // Descendre l'elevator
+  moveServo(Servo05, 180, 0, 2); // Release Left Can
+  moveServo(Servo06, 10, 160, 2); // Release Right Can
+  delay(2000);
+  moveServo(Servo08, 0, 45, 20); // Monter l'elevator
+  */
+
+  /*
+  Servo04.write(45);
+  moveServo(Servo08, 45, 0, 20); // Descendre l'elevator
+  delay(1000);
+  pwm.setPWM(0, 4096, 0 ); 
+  pwm.setPWM(1, 0 , 4096 );
+  delay(500);
+  moveServo(Servo04, 45, 5, 5); //Descendre le bras
+  moveServo(Servo05, 0, 180, 2); // Take Left Can
+  moveServo(Servo06, 160, 10, 2); // Take Right Can
+  moveServo(Servo04, 0, 45, 5); // Monter le bras
+  moveServo(Servo08, 0, 45, 20); // Monter l'elevator
+  delay(2000);
+  moveServo(Servo08, 45, 0, 20); // Descendre l'elevator
+  moveServo(Servo04, 45, 5, 5); //Descendre le bras
+  moveServo(Servo05, 180, 0, 2); // Release Left Can
+  moveServo(Servo06, 10, 160, 2); // Release Right Can
+  pwm.setPWM(0, 0, 4096 ); 
+  pwm.setPWM(1, 4096 , 0 );
+  delay(500);
+  pwm.setPWM(1, 0 , 4096 );
+  delay(500);
+  moveServo(Servo04, 0, 45, 5); // Monter le bras
+  delay(2000);
+  moveServo(Servo08, 0, 45, 20); // Monter l'elevator
+  */
+
+  /*
+  // Test Pump 1
+  delay(1000);
+  pwm.setPWM(0, 4096, 0 ); 
+  pwm.setPWM(1, 0 , 4096 );
+  pwm.setPWM(2, 4096, 0 ); 
+  pwm.setPWM(3, 0 , 4096 );
+  delay(5000);
+  pwm.setPWM(0, 0, 4096 ); 
+  pwm.setPWM(1, 4096 , 0 );
+  pwm.setPWM(2, 0, 4096 ); 
+  pwm.setPWM(3, 4096 , 0 );
+  delay(1000);
+  pwm.setPWM(1, 0 , 4096 );
+  pwm.setPWM(3, 0 , 4096 );
+  */
+  //delay(3000);
 }

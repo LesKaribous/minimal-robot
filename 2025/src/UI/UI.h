@@ -33,6 +33,7 @@ bool getStrategy();
 bool getLidarState();
 int getInitState();
 int getTiretteState();
+int getAnalogValue();
 
 void setRobot(bool state);
 void setTeamColor(bool state);

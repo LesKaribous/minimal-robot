@@ -17,6 +17,8 @@ int
     PREVIOUS_INIT_STATE = NO_INIT,
     TIRETTE_STATE = TIRETTE_UNARMED;
 
+int ANALOG_VALUE = 0;
+
 bool PREVIOUS_LIDAR_STATE = LIDAR_STATE;
 bool firstUpdate = true;
 
@@ -24,6 +26,7 @@ void init_tft() {
   tft.begin();
   tft.fillScreen(ILI9341_BLACK);
 }
+
 
 
 void restartDisplay() {
@@ -69,6 +72,7 @@ bool getStrategy(){return STRATEGY = digitalRead(ihm_strategy);}
 bool getLidarState(){return LIDAR_STATE;}
 int getInitState(){return INIT_STATE;}
 int getTiretteState(){return TIRETTE_STATE;}
+int getAnalogValue(){return ANALOG_VALUE = analogRead(ihm_analog);}
 
 void setRobot(bool state)       {ROBOT        = state;}
 void setTeamColor(bool state)   {TEAM_COLOR   = state;}

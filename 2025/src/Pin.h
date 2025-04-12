@@ -11,6 +11,8 @@ const int neopixel = 37;
 const int pinRobot = 2;
 const int buzzer = 3;
 
+const int ihm_analog = 16;
+
 // TFT pinout
 const int TFT_CS = 10,
     TFT_DC = 9,
@@ -40,9 +42,9 @@ const int pinServo04 = 23;
 const int pinServo05 = 16;
 const int pinServo06 = 39;
 
-const int pinServo07 = 15;
-const int pinServo08 = 14;
-const int pinServo09 = 17;
+const int pinServo07 = 15; // Elevator CA
+const int pinServo08 = 14; // Elevator AB
+const int pinServo09 = 17; // Elevator BC
 
 //  EnableRegulator 
 const int pinEnaTraco   = 28;
